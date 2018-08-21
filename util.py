@@ -7,9 +7,17 @@ import pandas as pd
 
 
 def is_sentence_ends(index, word_list):
-    end_punctuation = ['。', '？', '！', '?', '!', '\n', '；', ';']
+    """
+    根据传入的index和word_list找到相应的字符，来判断是否句子结束
+    :param index:
+    :param word_list:
+    :return:
+    """
 
-    possible_end_punctuation = ['\"', '”', '）', '」', ')', '\'']
+    # 因为考虑到是中文文本，英文句号'.'并未加入end_punctuation
+    end_punctuation = ['。', '？', '！', '?', '!', '\n', '；', ';']  # 一定为句子结尾的标点符号
+
+    possible_end_punctuation = ['\"', '”', '）', '」', ')', '\'']  # 可能为句子结尾的标点符号
 
     word = word_list[index]
     if word in end_punctuation + possible_end_punctuation and \
@@ -43,12 +51,12 @@ def init_data(data_dir, data_dict={}):
                 word_info = generate_word_info(file)
                 data_dict.setdefault(item[:-4], {'word_info': dict(),
                                                  'label_info': dict()})
-                data_dict[item[9:-4]]['word_info'] = word_info
+                data_dict[item[:-4]]['word_info'] = word_info
             elif item[-4:] == '.ann':
                 label_info = generate_label_info(file)
                 data_dict.setdefault(item[:-4], {'word_info': dict(),
                                                  'label_info': dict()})
-                data_dict[item[7:-4]]['label_info'] = label_info
+                data_dict[item[:-4]]['label_info'] = label_info
     return data_dict
 
 
@@ -115,10 +123,16 @@ def load_data(data_dir):
     return data
 
 
-def find_begin_index(index, ann_list):
-    while index >= 0 and ann_list[index][0] != 'B':
+def find_begin_index(index, ann_list, start=0):
+    """
+    在ann_list中找在位于index位置前第一个标签开始位置。
+    :param index:
+    :param ann_list:
+    :return: index:
+    """
+    while index >= start and ann_list[index][0] != 'B':
         index -= 1
-    if index == 0 and ann_list[index][0] != 'B':
+    if index == start and ann_list[index][0] != 'B':
         print('ERROR! CAN"T FIND WHERE LABEL BEGINS')
         exit()
     return index
@@ -203,7 +217,7 @@ def write_to_file(dst_file, word_list, *lst, is_keep_space=False):
 
 def is_chinese_word(word):
     """
-    检查是都是中文单词
+    检查是否都是中文单词
     :param content_raw:
     :return:
     """
@@ -215,10 +229,10 @@ def is_chinese_word(word):
 
 def generate_segmented_sequences(input_file, output_dir="./"):
     """
-        获取训练词向量的文本
-        :param input_file:
-        :return:
-        """
+    基于标注结果文件，生成以句来短行的文档
+    :param input_file: output_dir:
+    :return:
+    """
     out_fh1 = open(os.path.join(output_dir, 'sent_text_ICO.txt'), 'w')
     with open(input_file) as fh:
         sentence_text = []
@@ -235,6 +249,13 @@ def generate_segmented_sequences(input_file, output_dir="./"):
 
 
 def generate_sentence_word_count(input_file='./sent_text_ICO.txt', output_dir="./"):
+    # Now it only support counting char.
+    """
+    基于sent_text_ICO.txt文件生成一个
+    :param input_file:
+    :param output_dir:
+    :return:
+    """
     sentence_list = list()
     word_count = list()
     with open(input_file, 'r', encoding='utf-8') as f:
@@ -245,11 +266,17 @@ def generate_sentence_word_count(input_file='./sent_text_ICO.txt', output_dir=".
 
         pd.DataFrame({"index": list(range(1, len(word_count) + 1)),
                       "sentence": sentence_list,
-                      "word_count": word_count}).to_csv(os.path.join(output_dir, 'Char_SentenceCharCount.csv'),
+                      "word_count": word_count}).to_csv(os.path.join(output_dir, 'SentenceCharCount.csv'),
                                                         index=False, header=True)
 
 
 def generate_annotation_file(src_dir, dst_file):
+    """
+    将src_dir下所有整理好的文件整合为一个文件到dst_file
+    :param src_dir:
+    :param dst_file:
+    :return:
+    """
     fpath, fname = os.path.split(dst_file)
     if not os.path.exists(fpath):
         os.mkdir(fpath)
@@ -269,26 +296,3 @@ def generate_annotation_file(src_dir, dst_file):
             with open(file_name, 'r', encoding='utf-8') as sf, open(dst_file, 'a+', encoding='utf-8') as df:
                 for line in sf.readlines():
                     df.write(line)
-
-# Old Version
-# def write_to_file(dst_file, word_list, *lst):
-#     with open(dst_file, 'w', encoding='utf-8') as f:
-#         for i in range(len(word_list)):
-#             word = word_list[i]
-#             # 空行不写入文件
-#             if word == '\n':
-#                 pass
-#             elif word == ' ' and word_list[i + 1] == ' ':
-#                 continue
-#             elif word == '\t' or word == '\|' or word == '|':
-#                 continue
-#             else:
-#                 line = word_list[i] + '\t'
-#                 for l in lst:
-#                     line += l[i] + '\t'
-#                 line += '\n'
-#                 f.write(line)
-#
-#             # 判断分句
-#             if is_sentence_ends(i, word_list):
-#                 f.write('\n')
